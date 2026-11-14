@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Камень, ножницы, бумага — Vite</title>
+    <script type="module" src="/src/main.js"></script>
+  </head>
+  <body>
+    <main class="game">
+      <header class="game__header">
+        <h1>Камень, ножницы, бумага</h1>
+        <p class="subtitle">
+          Матч до 3 побед • прогресс сохраняется автоматически
+        </p>
+      </header>
+
+      <section class="player-bar" aria-label="Настройки игрока">
+        <label class="player-bar__label" for="player-name-input"
+          >Имя игрока</label
+        >
+        <input
+          id="player-name-input"
+          class="player-bar__input"
+          type="text"
+          maxlength="24"
+          placeholder="Введите имя (по умолчанию — Игрок)"
+        />
+      </section>
+
+      <section class="scoreboard" aria-label="Счёт матча">
+        <div class="score-card">
+          <span class="score-card__label" id="player-label">Игрок</span>
+          <strong class="score-card__value" id="player-score">0</strong>
+        </div>
+        <div class="score-card score-card--round">
+          <span class="score-card__label">Раунд</span>
+          <strong class="score-card__value" id="round-number">0</strong>
+        </div>
+        <div class="score-card">
+          <span class="score-card__label">Компьютер</span>
+          <strong class="score-card__value" id="computer-score">0</strong>
+        </div>
+      </section>
+
+      <section class="arena" aria-live="polite">
+        <p class="status-message" id="status-message">
+          Сделайте первый ход, чтобы начать партию
+        </p>
+        <div class="duel" id="duel-display" hidden>
+          <div class="duel__side">
+            <span class="duel__caption">Ваш ход</span>
+            <span class="duel__choice" id="player-choice-display">—</span>
+          </div>
+          <span class="duel__vs">VS</span>
+          <div class="duel__side">
+            <span class="duel__caption">Ход компьютера</span>
+            <span class="duel__choice" id="computer-choice-display">—</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="controls" aria-label="Выбор хода">
+        <button type="button" class="choice-btn" data-choice="rock">
+          <span class="choice-btn__emoji" aria-hidden="true">🪨</span>
+          <span class="choice-btn__title">Камень</span>
+          <kbd class="choice-btn__key">1 / R</kbd>
+        </button>
+
+        <button type="button" class="choice-btn" data-choice="scissors">
+          <span class="choice-btn__emoji" aria-hidden="true">✂️</span>
+          <span class="choice-btn__title">Ножницы</span>
+          <kbd class="choice-btn__key">2 / S</kbd>
+        </button>
+
+        <button type="button" class="choice-btn" data-choice="paper">
+          <span class="choice-btn__emoji" aria-hidden="true">📄</span>
+          <span class="choice-btn__title">Бумага</span>
+          <kbd class="choice-btn__key">3 / P</kbd>
+        </button>
+      </section>
+
+      <div class="actions">
+        <button type="button" class="reset-btn" id="new-game-btn">
+          Новая партия <kbd>N</kbd>
+        </button>
+      </div>
+
+      <section class="history" aria-label="История раундов">
+        <h2>История раундов</h2>
+        <p class="history__empty" id="history-empty">
+          Пока не сыграно ни одного раунда
+        </p>
+        <ul class="history__list" id="history-list"></ul>
+      </section>
+    </main>
+  </body>
+</html>
