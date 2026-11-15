@@ -3,12 +3,14 @@ import assert from "node:assert/strict";
 import {
   WIN_SCORE,
   createInitialState,
+  createRoundId,
   getMatchWinner,
   playRound,
   removeHistoryEntry,
   resolveRoundOutcome,
   setPlayerName,
 } from "../src/rules.js";
+import { isValidState } from "../src/storage.js";
 
 describe("Правила игры «Камень, ножницы, бумага»", () => {
   it("корректно определяет исход раунда для всех комбинаций", () => {
@@ -43,6 +45,14 @@ describe("Правила игры «Камень, ножницы, бумага»
     });
   });
 
+  it("игнорирует некорректные жесты игрока и компьютера", () => {
+    const initial = createInitialState();
+
+    assert.equal(playRound(initial, "lizard", "rock", "r-bad-1"), initial);
+    assert.equal(playRound(initial, "rock", "spock", "r-bad-2"), initial);
+    assert.ok(createRoundId().length > 0);
+  });
+
   it("завершает матч при достижении WIN_SCORE и блокирует последующие ходы", () => {
     let state = createInitialState();
     for (let i = 1; i <= WIN_SCORE; i += 1) {
@@ -71,9 +81,21 @@ describe("Правила игры «Камень, ножницы, бумага»
     const initial = createInitialState();
     const renamed = setPlayerName(
       initial,
-      "ОченьДлинноеИмяИгрокаКотороеНадоОбрезать",
+      "Оченьдлинноеимяигрокакотороенужнообрезать",
     );
 
     assert.equal(renamed.playerName.length, 24);
+  });
+
+  it("отклоняет невозможное состояние со счётом 3:3 при загрузке сохранения", () => {
+    const impossible = {
+      ...createInitialState("Эрдэни"),
+      playerScore: WIN_SCORE,
+      computerScore: WIN_SCORE,
+      round: 6,
+    };
+
+    assert.equal(isValidState(impossible), false);
+    assert.equal(isValidState(createInitialState("Эрдэни")), true);
   });
 });

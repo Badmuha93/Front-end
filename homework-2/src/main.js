@@ -98,7 +98,7 @@ ui.historyList.addEventListener("click", (event) => {
 });
 
 document.addEventListener("keydown", (event) => {
-  if (event.ctrlKey || event.metaKey || event.altKey) {
+  if (event.repeat || event.ctrlKey || event.metaKey || event.altKey) {
     return;
   }
 

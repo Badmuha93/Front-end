@@ -19,7 +19,7 @@ function isValidRoundEntry(entry) {
   );
 }
 
-function isValidState(data) {
+export function isValidState(data) {
   if (data === null || typeof data !== "object") {
     return false;
   }
@@ -38,7 +38,10 @@ function isValidState(data) {
     Number.isInteger(data.round) &&
     data.round >= 0;
 
-  if (!nameValid || !scoresValid) {
+  const bothWon =
+    data.playerScore === WIN_SCORE && data.computerScore === WIN_SCORE;
+
+  if (!nameValid || !scoresValid || bothWon) {
     return false;
   }
 
@@ -71,11 +74,17 @@ export function loadState() {
 
     const parsed = JSON.parse(raw);
     if (parsed?.version !== SAVE_VERSION || !isValidState(parsed.state)) {
+      localStorage.removeItem(STORAGE_KEY);
       return null;
     }
 
     return parsed.state;
   } catch {
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // Игнорируем ошибку очистки, если хранилище недоступно
+    }
     return null;
   }
 }
