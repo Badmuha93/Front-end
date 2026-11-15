@@ -32,7 +32,10 @@ function isValidState(data) {
     Number.isInteger(data.round) &&
     data.round >= 0;
 
-  if (!scoresValid) {
+  const bothWon =
+    data.playerScore === WIN_SCORE && data.computerScore === WIN_SCORE;
+
+  if (!scoresValid || bothWon) {
     return false;
   }
 
@@ -49,8 +52,8 @@ export function saveState(state) {
       state,
     });
     localStorage.setItem(STORAGE_KEY, payload);
-  } catch (error) {
-    console.error("Не удалось сохранить состояние игры:", error);
+  } catch {
+   
   }
 }
 
@@ -63,11 +66,17 @@ export function loadState() {
 
     const parsed = JSON.parse(raw);
     if (parsed?.version !== SAVE_VERSION || !isValidState(parsed.state)) {
+      localStorage.removeItem(STORAGE_KEY);
       return null;
     }
 
     return parsed.state;
   } catch {
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {
+    
+    }
     return null;
   }
 }

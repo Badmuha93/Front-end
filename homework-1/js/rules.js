@@ -45,7 +45,11 @@ export function getMatchWinner(state) {
 }
 
 export function playRound(state, playerChoice, computerChoice = getRandomChoice()) {
-  if (!isValidChoice(playerChoice) || getMatchWinner(state) !== null) {
+  if (
+    !isValidChoice(playerChoice) ||
+    !isValidChoice(computerChoice) ||
+    getMatchWinner(state) !== null
+  ) {
     return state;
   }
 
