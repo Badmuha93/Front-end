@@ -1,20 +1,25 @@
-import { WIN_SCORE, isValidChoice } from "./rules.js";
+import { WIN_SCORE, isValidChoice, resolveRoundOutcome } from "./rules.js";
 
 const STORAGE_KEY = "rps-game:save";
 const SAVE_VERSION = 1;
-const VALID_OUTCOMES = new Set(["win", "loss", "draw"]);
 
 function isValidRoundEntry(entry) {
-  return (
-    entry !== null &&
-    typeof entry === "object" &&
+  if (entry === null || typeof entry !== "object") {
+    return false;
+  }
+
+  const hasValidFields =
     Number.isInteger(entry.round) &&
     entry.round > 0 &&
     isValidChoice(entry.playerChoice) &&
     isValidChoice(entry.computerChoice) &&
-    typeof entry.outcome === "string" &&
-    VALID_OUTCOMES.has(entry.outcome)
-  );
+    typeof entry.outcome === "string";
+
+  if (!hasValidFields) {
+    return false;
+  }
+
+  return resolveRoundOutcome(entry.playerChoice, entry.computerChoice) === entry.outcome;
 }
 
 function isValidState(data) {
@@ -32,17 +37,52 @@ function isValidState(data) {
     Number.isInteger(data.round) &&
     data.round >= 0;
 
-  const bothWon =
-    data.playerScore === WIN_SCORE && data.computerScore === WIN_SCORE;
+  const bothWon = data.playerScore === WIN_SCORE && data.computerScore === WIN_SCORE;
+  const scoresFitRounds = data.playerScore + data.computerScore <= data.round;
 
-  if (!scoresValid || bothWon) {
+  if (!scoresValid || bothWon || !scoresFitRounds) {
     return false;
   }
 
-  const lastRoundValid = data.lastRound === null || isValidRoundEntry(data.lastRound);
-  const historyValid = Array.isArray(data.history) && data.history.every(isValidRoundEntry);
+  if (!Array.isArray(data.history) || data.history.length !== data.round) {
+    return false;
+  }
 
-  return lastRoundValid && historyValid;
+  if (data.round === 0) {
+    return data.lastRound === null;
+  }
+
+  if (!isValidRoundEntry(data.lastRound) || data.lastRound.round !== data.round) {
+    return false;
+  }
+
+  let expectedRound = data.round;
+  let wins = 0;
+  let losses = 0;
+
+  for (const entry of data.history) {
+    if (!isValidRoundEntry(entry) || entry.round !== expectedRound) {
+      return false;
+    }
+    expectedRound -= 1;
+
+    if (entry.outcome === "win") {
+      wins += 1;
+    } else if (entry.outcome === "loss") {
+      losses += 1;
+    }
+  }
+
+  if (wins !== data.playerScore || losses !== data.computerScore) {
+    return false;
+  }
+
+  const latest = data.history[0];
+  return (
+    latest.playerChoice === data.lastRound.playerChoice &&
+    latest.computerChoice === data.lastRound.computerChoice &&
+    latest.outcome === data.lastRound.outcome
+  );
 }
 
 export function saveState(state) {
@@ -53,7 +93,7 @@ export function saveState(state) {
     });
     localStorage.setItem(STORAGE_KEY, payload);
   } catch {
-   
+    return;
   }
 }
 
@@ -75,7 +115,7 @@ export function loadState() {
     try {
       localStorage.removeItem(STORAGE_KEY);
     } catch {
-    
+      return null;
     }
     return null;
   }

@@ -30,30 +30,30 @@ const ui = {
 
 let state = loadState() ?? createInitialState();
 
-function update(nextState) {
-  state = nextState;
-  saveState(state);
-  render(state, ui);
+function onStateChange(nextState) {
+  saveState(nextState);
+  render(nextState, ui);
 }
 
-function handleMove(choice) {
-  const nextState = playRound(state, choice);
-  if (nextState !== state) {
-    update(nextState);
+function setState(updater) {
+  const nextState = updater(state);
+  if (nextState === state) {
+    return;
   }
-}
 
-function handleNewGame() {
-  update(createInitialState());
+  state = nextState;
+  onStateChange(nextState);
 }
 
 for (const button of ui.choiceButtons) {
   button.addEventListener("click", () => {
-    handleMove(button.dataset.choice);
+    setState((current) => playRound(current, button.dataset.choice));
   });
 }
 
-ui.newGameBtn.addEventListener("click", handleNewGame);
+ui.newGameBtn.addEventListener("click", () => {
+  setState(() => createInitialState());
+});
 
 document.addEventListener("keydown", (event) => {
   if (event.repeat || event.ctrlKey || event.metaKey || event.altKey) {
@@ -61,13 +61,13 @@ document.addEventListener("keydown", (event) => {
   }
 
   if (event.code === "KeyN") {
-    handleNewGame();
+    setState(() => createInitialState());
     return;
   }
 
   const choice = KEY_TO_CHOICE[event.code];
   if (choice !== undefined) {
-    handleMove(choice);
+    setState((current) => playRound(current, choice));
   }
 });
 

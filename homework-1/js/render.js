@@ -6,6 +6,53 @@ const OUTCOME_TEXT = {
   draw: { status: "Ничья в раунде", badge: "Ничья", className: "draw" },
 };
 
+let renderedHistory = null;
+
+function createHistoryItem(entry) {
+  const li = document.createElement("li");
+  li.className = "history__item";
+
+  const player = CHOICES[entry.playerChoice];
+  const computer = CHOICES[entry.computerChoice];
+  const info = OUTCOME_TEXT[entry.outcome];
+
+  const summary = document.createElement("span");
+  summary.textContent = `Раунд ${entry.round}: ${player.emoji} против ${computer.emoji}`;
+
+  const badge = document.createElement("strong");
+  badge.className = `history__badge--${info.className}`;
+  badge.textContent = info.badge;
+
+  li.append(summary, badge);
+  return li;
+}
+
+function updateHistoryList(history, ui) {
+  if (renderedHistory === history) {
+    return;
+  }
+  renderedHistory = history;
+
+  ui.historyEmpty.hidden = history.length > 0;
+
+  if (history.length === 0) {
+    ui.historyList.replaceChildren();
+    return;
+  }
+
+  const currentCount = ui.historyList.children.length;
+  if (history.length < currentCount) {
+    const items = history.map(createHistoryItem);
+    ui.historyList.replaceChildren(...items);
+    return;
+  }
+
+  const newEntriesCount = history.length - currentCount;
+  for (let i = newEntriesCount - 1; i >= 0; i -= 1) {
+    ui.historyList.prepend(createHistoryItem(history[i]));
+  }
+}
+
 export function render(state, ui) {
   const winner = getMatchWinner(state);
   const isFinished = winner !== null;
@@ -45,26 +92,5 @@ export function render(state, ui) {
   }
 
   ui.newGameBtn.classList.toggle("reset-btn--highlight", isFinished);
-
-  ui.historyEmpty.hidden = state.history.length > 0;
-  const items = state.history.map((entry) => {
-    const li = document.createElement("li");
-    li.className = "history__item";
-
-    const player = CHOICES[entry.playerChoice];
-    const computer = CHOICES[entry.computerChoice];
-    const info = OUTCOME_TEXT[entry.outcome];
-
-    const summary = document.createElement("span");
-    summary.textContent = `Раунд ${entry.round}: ${player.emoji} против ${computer.emoji}`;
-
-    const badge = document.createElement("strong");
-    badge.className = `history__badge--${info.className}`;
-    badge.textContent = info.badge;
-
-    li.append(summary, badge);
-    return li;
-  });
-
-  ui.historyList.replaceChildren(...items);
+  updateHistoryList(state.history, ui);
 }
