@@ -40,22 +40,14 @@ const ui = {
 
 let state = loadState() ?? createInitialState();
 
-function update(nextState) {
-  state = nextState;
-  saveState(state);
-  render(state, ui);
-}
+function onStateChange(prevState, nextState) {
+  saveState(nextState);
+  render(nextState, ui);
 
-function handleMove(choice) {
-  const prevWinner = getMatchWinner(state);
-  const nextState = playRound(state, choice);
-  if (nextState === state) {
-    return;
-  }
-
-  update(nextState);
-
-  if (prevWinner === null && getMatchWinner(nextState) === "player") {
+  if (
+    getMatchWinner(prevState) === null &&
+    getMatchWinner(nextState) === "player"
+  ) {
     confetti({
       particleCount: 90,
       spread: 70,
@@ -64,21 +56,30 @@ function handleMove(choice) {
   }
 }
 
-function handleNewGame() {
-  update(createInitialState(state.playerName));
+function setState(updater) {
+  const nextState = updater(state);
+  if (nextState === state) {
+    return;
+  }
+
+  const prevState = state;
+  state = nextState;
+  onStateChange(prevState, nextState);
 }
 
 ui.playerNameInput.addEventListener("input", (event) => {
-  update(setPlayerName(state, event.target.value));
+  setState((current) => setPlayerName(current, event.target.value));
 });
 
 for (const button of ui.choiceButtons) {
   button.addEventListener("click", () => {
-    handleMove(button.dataset.choice);
+    setState((current) => playRound(current, button.dataset.choice));
   });
 }
 
-ui.newGameBtn.addEventListener("click", handleNewGame);
+ui.newGameBtn.addEventListener("click", () => {
+  setState((current) => createInitialState(current.playerName));
+});
 
 ui.historyList.addEventListener("click", (event) => {
   const target = event.target;
@@ -92,8 +93,9 @@ ui.historyList.addEventListener("click", (event) => {
   }
 
   const item = deleteBtn.closest(".history__item");
-  if (item?.dataset.id !== undefined) {
-    update(removeHistoryEntry(state, item.dataset.id));
+  const entryId = item?.dataset.id;
+  if (entryId !== undefined) {
+    setState((current) => removeHistoryEntry(current, entryId));
   }
 });
 
@@ -112,13 +114,13 @@ document.addEventListener("keydown", (event) => {
   }
 
   if (event.code === "KeyN") {
-    handleNewGame();
+    setState((current) => createInitialState(current.playerName));
     return;
   }
 
   const choice = KEY_TO_CHOICE[event.code];
   if (choice !== undefined) {
-    handleMove(choice);
+    setState((current) => playRound(current, choice));
   }
 });
 

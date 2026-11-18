@@ -1,21 +1,34 @@
-import { MAX_NAME_LENGTH, WIN_SCORE, isValidChoice } from "./rules.js";
+import {
+  MAX_NAME_LENGTH,
+  WIN_SCORE,
+  isValidChoice,
+  resolveRoundOutcome,
+} from "./rules.js";
 
 const STORAGE_KEY = "rps-game:v2:save";
 const SAVE_VERSION = 2;
-const VALID_OUTCOMES = new Set(["win", "loss", "draw"]);
 
 function isValidRoundEntry(entry) {
-  return (
-    entry !== null &&
-    typeof entry === "object" &&
+  if (entry === null || typeof entry !== "object") {
+    return false;
+  }
+
+  const hasValidFields =
     typeof entry.id === "string" &&
     entry.id.length > 0 &&
     Number.isInteger(entry.round) &&
     entry.round > 0 &&
     isValidChoice(entry.playerChoice) &&
     isValidChoice(entry.computerChoice) &&
-    typeof entry.outcome === "string" &&
-    VALID_OUTCOMES.has(entry.outcome)
+    typeof entry.outcome === "string";
+
+  if (!hasValidFields) {
+    return false;
+  }
+
+  return (
+    resolveRoundOutcome(entry.playerChoice, entry.computerChoice) ===
+    entry.outcome
   );
 }
 
@@ -40,50 +53,89 @@ export function isValidState(data) {
 
   const bothWon =
     data.playerScore === WIN_SCORE && data.computerScore === WIN_SCORE;
+  const scoresFitRounds = data.playerScore + data.computerScore <= data.round;
 
-  if (!nameValid || !scoresValid || bothWon) {
+  if (!nameValid || !scoresValid || bothWon || !scoresFitRounds) {
     return false;
   }
 
-  const lastRoundValid =
-    data.lastRound === null || isValidRoundEntry(data.lastRound);
-  const historyValid =
-    Array.isArray(data.history) && data.history.every(isValidRoundEntry);
+  if (!Array.isArray(data.history) || data.history.length > data.round) {
+    return false;
+  }
 
-  return lastRoundValid && historyValid;
+  if (data.round === 0) {
+    return data.lastRound === null && data.history.length === 0;
+  }
+
+  if (
+    !isValidRoundEntry(data.lastRound) ||
+    data.lastRound.round !== data.round
+  ) {
+    return false;
+  }
+
+  const seenIds = new Set();
+  let prevRound = data.round + 1;
+
+  for (const entry of data.history) {
+    if (
+      !isValidRoundEntry(entry) ||
+      entry.round >= prevRound ||
+      seenIds.has(entry.id)
+    ) {
+      return false;
+    }
+    seenIds.add(entry.id);
+    prevRound = entry.round;
+  }
+
+  if (data.history.length > 0 && data.history[0].round === data.round) {
+    const latest = data.history[0];
+    const matchesLastRound =
+      latest.id === data.lastRound.id &&
+      latest.playerChoice === data.lastRound.playerChoice &&
+      latest.computerChoice === data.lastRound.computerChoice &&
+      latest.outcome === data.lastRound.outcome;
+
+    if (!matchesLastRound) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
-export function saveState(state) {
+export function saveState(state, storage = globalThis.localStorage) {
   try {
     const payload = JSON.stringify({
       version: SAVE_VERSION,
       state,
     });
-    localStorage.setItem(STORAGE_KEY, payload);
+    storage.setItem(STORAGE_KEY, payload);
   } catch {
-    // Игнорируем ошибку записи при недоступности или переполнении хранилища
+    return;
   }
 }
 
-export function loadState() {
+export function loadState(storage = globalThis.localStorage) {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = storage.getItem(STORAGE_KEY);
     if (raw === null) {
       return null;
     }
 
     const parsed = JSON.parse(raw);
     if (parsed?.version !== SAVE_VERSION || !isValidState(parsed.state)) {
-      localStorage.removeItem(STORAGE_KEY);
+      storage.removeItem(STORAGE_KEY);
       return null;
     }
 
     return parsed.state;
   } catch {
     try {
-      localStorage.removeItem(STORAGE_KEY);
+      storage.removeItem(STORAGE_KEY);
     } catch {
-      // Игнорируем ошибку очистки, если хранилище недоступно
+      return null;
     }
     return null;
   }

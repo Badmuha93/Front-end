@@ -54,6 +54,9 @@ export function getRandomChoice() {
 }
 
 export function resolveRoundOutcome(playerChoice, computerChoice) {
+  if (!isValidChoice(playerChoice) || !isValidChoice(computerChoice)) {
+    return null;
+  }
   if (playerChoice === computerChoice) {
     return "draw";
   }
