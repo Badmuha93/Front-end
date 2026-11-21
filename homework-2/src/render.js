@@ -10,6 +10,79 @@ const OUTCOME_TEXT = {
   draw: { status: "Ничья в раунде", badge: "Ничья", className: "draw" },
 };
 
+function setText(element, value) {
+  if (element.textContent !== value) {
+    element.textContent = value;
+  }
+}
+
+function createHistoryItem(id) {
+  const item = document.createElement("li");
+  item.className = "history__item";
+  item.dataset.id = id;
+
+  const summary = document.createElement("span");
+  const meta = document.createElement("div");
+  meta.className = "history__meta";
+
+  const badge = document.createElement("strong");
+  const deleteBtn = document.createElement("button");
+  deleteBtn.type = "button";
+  deleteBtn.className = "history__delete-btn";
+  deleteBtn.textContent = "×";
+
+  meta.append(badge, deleteBtn);
+  item.append(summary, meta);
+  return item;
+}
+
+function renderHistory(history, list) {
+  const itemsById = new Map(
+    Array.from(list.children, (item) => [item.dataset.id, item]),
+  );
+  const activeIds = new Set(history.map((entry) => entry.id));
+
+  for (const [id, item] of itemsById) {
+    if (!activeIds.has(id)) {
+      item.remove();
+    }
+  }
+
+  let nextNode = list.firstElementChild;
+
+  for (const entry of history) {
+    const item = itemsById.get(entry.id) ?? createHistoryItem(entry.id);
+    const summary = item.firstElementChild;
+    const meta = item.lastElementChild;
+    const badge = meta.firstElementChild;
+    const deleteBtn = meta.lastElementChild;
+    const player = CHOICES[entry.playerChoice];
+    const computer = CHOICES[entry.computerChoice];
+    const info = OUTCOME_TEXT[entry.outcome];
+
+    setText(
+      summary,
+      `Раунд ${entry.round}: ${player.emoji} против ${computer.emoji}`,
+    );
+    setText(badge, info.badge);
+
+    const badgeClass = `history__badge--${info.className}`;
+    if (badge.className !== badgeClass) {
+      badge.className = badgeClass;
+    }
+
+    const deleteLabel = `Удалить запись раунда ${entry.round}`;
+    if (deleteBtn.getAttribute("aria-label") !== deleteLabel) {
+      deleteBtn.setAttribute("aria-label", deleteLabel);
+    }
+
+    if (item !== nextNode) {
+      list.insertBefore(item, nextNode);
+    }
+    nextNode = item.nextElementSibling;
+  }
+}
+
 export function render(state, ui) {
   const winner = getMatchWinner(state);
   const isFinished = winner !== null;
@@ -57,38 +130,5 @@ export function render(state, ui) {
   ui.newGameBtn.classList.toggle("reset-btn--highlight", isFinished);
 
   ui.historyEmpty.hidden = state.history.length > 0;
-  const items = state.history.map((entry) => {
-    const li = document.createElement("li");
-    li.className = "history__item";
-    li.dataset.id = entry.id;
-
-    const player = CHOICES[entry.playerChoice];
-    const computer = CHOICES[entry.computerChoice];
-    const info = OUTCOME_TEXT[entry.outcome];
-
-    const summary = document.createElement("span");
-    summary.textContent = `Раунд ${entry.round}: ${player.emoji} против ${computer.emoji}`;
-
-    const meta = document.createElement("div");
-    meta.className = "history__meta";
-
-    const badge = document.createElement("strong");
-    badge.className = `history__badge--${info.className}`;
-    badge.textContent = info.badge;
-
-    const deleteBtn = document.createElement("button");
-    deleteBtn.type = "button";
-    deleteBtn.className = "history__delete-btn";
-    deleteBtn.textContent = "×";
-    deleteBtn.setAttribute(
-      "aria-label",
-      `Удалить запись раунда ${entry.round}`,
-    );
-
-    meta.append(badge, deleteBtn);
-    li.append(summary, meta);
-    return li;
-  });
-
-  ui.historyList.replaceChildren(...items);
+  renderHistory(state.history, ui.historyList);
 }
