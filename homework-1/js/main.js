@@ -29,10 +29,27 @@ const ui = {
 };
 
 let state = loadState() ?? createInitialState();
+let renderPending = false;
 
-function onStateChange(nextState) {
-  saveState(nextState);
-  render(nextState, ui);
+function renderGame() {
+  const focused = document.activeElement;
+  render(state, ui);
+
+  if (focused?.matches(".choice-btn:disabled")) {
+    ui.newGameBtn.focus();
+  }
+}
+
+function scheduleRender() {
+  if (renderPending) {
+    return;
+  }
+
+  renderPending = true;
+  requestAnimationFrame(() => {
+    renderPending = false;
+    renderGame();
+  });
 }
 
 function setState(updater) {
@@ -42,7 +59,8 @@ function setState(updater) {
   }
 
   state = nextState;
-  onStateChange(nextState);
+  saveState(state);
+  scheduleRender();
 }
 
 for (const button of ui.choiceButtons) {
@@ -71,4 +89,4 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
-render(state, ui);
+renderGame();

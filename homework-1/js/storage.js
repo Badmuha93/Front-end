@@ -78,6 +78,13 @@ function isValidState(data) {
   }
 
   const latest = data.history[0];
+  if (
+    (data.playerScore === WIN_SCORE && latest.outcome !== "win") ||
+    (data.computerScore === WIN_SCORE && latest.outcome !== "loss")
+  ) {
+    return false;
+  }
+
   return (
     latest.playerChoice === data.lastRound.playerChoice &&
     latest.computerChoice === data.lastRound.computerChoice &&
