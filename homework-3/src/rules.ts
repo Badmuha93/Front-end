@@ -82,8 +82,8 @@ export function getMatchWinner(state: GameState): Winner {
 export function playRound(
   state: GameState,
   playerChoice: Choice,
-  computerChoice: Choice = getRandomChoice(),
-  id = createRoundId(),
+  computerChoice: Choice,
+  id: string,
 ): GameState {
   const outcome = resolveRoundOutcome(playerChoice, computerChoice);
   if (outcome === null || getMatchWinner(state) !== null) return state;
